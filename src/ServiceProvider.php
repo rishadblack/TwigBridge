@@ -11,13 +11,14 @@
 
 namespace TwigBridge;
 
+use App\Traits\TwigLoader;
 use Illuminate\View\ViewServiceProvider;
 use InvalidArgumentException;
 use Twig\Environment;
-use Twig\Lexer;
 use Twig\Extension\DebugExtension;
-use Twig\Extension\ExtensionInterface;
 use Twig\Extension\EscaperExtension;
+use Twig\Extension\ExtensionInterface;
+use Twig\Lexer;
 use Twig\Loader\ArrayLoader;
 use Twig\Loader\ChainLoader;
 
@@ -34,6 +35,8 @@ use Twig\Loader\ChainLoader;
  */
 class ServiceProvider extends ViewServiceProvider
 {
+    use TwigLoader;
+
     /**
      * {@inheritdoc}
      */
@@ -82,9 +85,9 @@ class ServiceProvider extends ViewServiceProvider
      */
     protected function loadConfiguration()
     {
-        $configPath = __DIR__ . '/../config/twigbridge.php';
+        $configPath = __DIR__.'/../config/twigbridge.php';
 
-        if (! $this->isLumen()) {
+        if (!$this->isLumen()) {
             $this->publishes([$configPath => config_path('twigbridge.php')], 'config');
         }
 
@@ -115,15 +118,15 @@ class ServiceProvider extends ViewServiceProvider
     protected function registerCommands()
     {
         $this->app->bindIf('command.twig', function () {
-            return new Command\TwigBridge;
+            return new Command\TwigBridge();
         });
 
         $this->app->bindIf('command.twig.clean', function () {
-            return new Command\Clean;
+            return new Command\Clean();
         });
 
         $this->app->bindIf('command.twig.lint', function () {
-            return new Command\Lint;
+            return new Command\Lint();
         });
 
         $this->commands(
@@ -148,9 +151,10 @@ class ServiceProvider extends ViewServiceProvider
             $options = $this->app['config']->get('twigbridge.twig.environment', []);
 
             // Check whether we have the cache path set
-            if (! isset($options['cache']) || is_null($options['cache'])) {
+            if (!isset($options['cache']) || is_null($options['cache'])) {
                 // No cache path set for Twig, lets set to the Laravel views storage folder
-                $options['cache'] = storage_path('framework/views/twig');
+                // $options['cache'] = storage_path('framework/views/twig');
+                $options['cache'] = $this->getCacheStorageLocation();
             }
 
             return $options;
@@ -243,12 +247,12 @@ class ServiceProvider extends ViewServiceProvider
                             $extension = $this->app->make($extension);
                         } catch (\Exception $e) {
                             throw new InvalidArgumentException(
-                                "Cannot instantiate Twig extension '$extension': " . $e->getMessage()
+                                "Cannot instantiate Twig extension '$extension': ".$e->getMessage()
                             );
                         }
                     } elseif (is_callable($extension)) {
                         $extension = $extension($this->app, $twig);
-                    } elseif (! is_a($extension, ExtensionInterface::class)) {
+                    } elseif (!is_a($extension, ExtensionInterface::class)) {
                         throw new InvalidArgumentException('Incorrect extension type');
                     }
 
@@ -288,7 +292,7 @@ class ServiceProvider extends ViewServiceProvider
      */
     protected function registerAliases()
     {
-        if (! $this->isRunningOnPhp7() and ! class_exists('TwigBridge\Extension\Laravel\String')) {
+        if (!$this->isRunningOnPhp7() and !class_exists('TwigBridge\Extension\Laravel\String')) {
             class_alias('TwigBridge\Extension\Laravel\Str', 'TwigBridge\Extension\Laravel\String');
         }
     }

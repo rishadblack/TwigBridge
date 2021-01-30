@@ -11,9 +11,9 @@
 
 namespace TwigBridge\Twig;
 
+use App\Traits\TwigLoader;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\View\ViewFinderInterface;
-use InvalidArgumentException;
 use Twig\Error\LoaderError;
 use Twig\Loader\LoaderInterface;
 use Twig\Source;
@@ -23,6 +23,7 @@ use Twig\Source;
  */
 class Loader implements LoaderInterface
 {
+    use TwigLoader;
     /**
      * @var \Illuminate\Filesystem\Filesystem
      */
@@ -34,66 +35,37 @@ class Loader implements LoaderInterface
     protected $finder;
 
     /**
-     * @var string Twig file extension.
+     * @var string twig file extension
      */
     protected $extension;
 
     /**
-     * @var array Template lookup cache.
+     * @var array template lookup cache
      */
     protected $cache = [];
 
     /**
-     * @param \Illuminate\Filesystem\Filesystem     $files     The filesystem
-     * @param \Illuminate\View\ViewFinderInterface  $finder
-     * @param string                                $extension Twig file extension.
+     * @param \Illuminate\Filesystem\Filesystem $files     The filesystem
+     * @param string                            $extension twig file extension
      */
     public function __construct(Filesystem $files, ViewFinderInterface $finder, $extension = 'twig')
     {
-        $this->files     = $files;
-        $this->finder    = $finder;
+        $this->files = $files;
+        $this->finder = $finder;
         $this->extension = $extension;
     }
 
     /**
-     * Return path to template without the need for the extension.
+     * Normalize the Twig template name to a name the ViewFinder can use.
      *
-     * @param string $name Template file name or path.
+     * @param string $name template file name
      *
-     * @throws LoaderError
-     * @return string Path to template
-     */
-    public function findTemplate($name)
-    {
-        if ($this->files->exists($name)) {
-            return $name;
-        }
-
-        $name = $this->normalizeName($name);
-
-        if (isset($this->cache[$name])) {
-            return $this->cache[$name];
-        }
-
-        try {
-            $this->cache[$name] = $this->finder->find($name);
-        } catch (InvalidArgumentException $ex) {
-            throw new LoaderError($ex->getMessage());
-        }
-
-        return $this->cache[$name];
-    }
-
-    /**
-     * Normalize the Twig template name to a name the ViewFinder can use
-     *
-     * @param  string $name Template file name.
      * @return string The parsed name
      */
     protected function normalizeName($name)
     {
         if ($this->files->extension($name) === $this->extension) {
-            $name = substr($name, 0, - (strlen($this->extension) + 1));
+            $name = substr($name, 0, -(strlen($this->extension) + 1));
         }
 
         return $name;
@@ -116,7 +88,7 @@ class Loader implements LoaderInterface
     /**
      * {@inheritdoc}
      */
-    public function getSourceContext(String $name): Source
+    public function getSourceContext(string $name): Source
     {
         $path = $this->findTemplate($name);
 
